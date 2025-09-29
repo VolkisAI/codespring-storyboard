@@ -1,0 +1,66 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Character and Style Consistency in Image Generation
+
+To ensure visual consistency across all generated images, the prompts sent to the image generation model are dynamically constructed. This process is handled within the `generateImagesForPrompts` function in the `[storyline-image-actions.ts](mdc:actions/storyline/storyline-image-actions.ts)` file.
+
+## Data Sources and Structures
+
+The final prompt combines data from several sources, each with a specific structure:
+
+### 1. The Scene-Specific Prompt
+
+-   **File:** `[TranscriptPane.tsx](mdc:components/storyline/TranscriptPane.tsx)`
+-   **Data Structure:** The scene information is part of the `TranscriptSegment` interface, defined in `[storyline-transcript-actions.ts](mdc:actions/storyline/storyline-transcript-actions.ts)`. The key field is `prompt`, which is a user-editable string describing the scene.
+    ```typescript
+    export interface TranscriptSegment {
+      id: string;
+      start: number;
+      end: number;
+      text: string;
+      prompt: string;
+      style: string;
+      isSelected: boolean;
+    }
+    ```
+
+### 2. The Selected Visual Style
+
+-   **File:** `[visual-styles.ts](mdc:config/visual-styles.ts)`
+-   **Data Structure:** The `visualStyles` object contains definitions for each style. The `description` field can be a simple string or a detailed JSON object that provides a comprehensive style guide for the model.
+    ```typescript
+    export type VisualStyle = {
+      name: string;
+      description: string | object;
+    };
+    ```
+
+### 3. The Selected Character Description
+
+-   **File:** `[storyline-character-actions.ts](mdc:actions/storyline/storyline-character-actions.ts)`
+-   **Data Structure:** When a user selects a character in the `[CharacterSelectionPane.tsx](mdc:components/storyline/CharacterSelectionPane.tsx)`, the lean `CharacterDetail` object is passed to the image generation action. Its `description` field contains a stringified JSON object with a detailed breakdown of the character's appearance.
+    ```typescript
+    export interface CharacterDetail {
+      name: string;
+      description: string; // A stringified JSON object
+    }
+    ```
+
+## Final Prompt Assembly
+
+Inside the `generateImagesForPrompts` function, these data points are combined into a single, detailed string.
+
+-   The scene description is taken directly from the `segment.prompt`.
+-   The character instruction is created by embedding the `character.description` JSON string.
+-   The style guide is appended, using the `styleInfo.description` (which can be a string or a stringified JSON object).
+
+The final prompt string passed to the OpenAI API is structured as follows:
+
+```
+Generate an image of the following scene: "{scene_prompt}". The main character in this image frame must follow this exact description: "{character_description_json}". The image must conform to the following style guide (in JSON format): {visual_style_json}
+```
+
+This structured, multi-part prompt ensures that every generated image adheres to the chosen art style and maintains the visual identity of the main character throughout the storyline.

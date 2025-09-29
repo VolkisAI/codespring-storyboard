@@ -1,0 +1,146 @@
+# Content Assets Feature Guide
+
+This document provides a comprehensive overview of the "Content Assets" feature. It's designed to be a reusable Product Requirement Document (PRD) for building this section in any application.
+
+## 1. Overview
+
+The Content Assets section provides users with valuable, pre-built resources to accelerate their content creation process. It features a clean, modern interface for browsing and accessing different types of assets like guides, data libraries, and media collections.
+
+The main entry point is the [Content Assets Page](mdc:app/dashboard/content-assets/page.tsx).
+
+## 2. Main Page: `page.tsx`
+
+The main page, located at `app/dashboard/content-assets/page.tsx`, serves as the hub for all content assets.
+
+**Key Responsibilities:**
+- Defines the list of available assets.
+- Renders the main header and description for the section.
+- Utilizes the `AssetGrid` component to display the assets.
+
+**Data Structure (`Asset[]`):**
+Each asset is an object with the following structure:
+```typescript
+export interface Asset {
+  id: string;         // A unique identifier, used for routing (e.g., 'ugc-brand-outreach-guide')
+  title: string;      // The main title of the asset (e.g., "UGC Brand Outreach Guide")
+  description: string;// A brief description shown on the card
+  type: AssetType;    // The type of asset ('guide', 'hooks', 'library')
+}
+```
+
+## 3. UI Components
+
+The UI is built from two primary components located in `components/content-assets/`.
+
+### 3.1. Asset Grid: `asset-grid.tsx`
+
+The [Asset Grid](mdc:components/content-assets/asset-grid.tsx) component is responsible for arranging the asset cards in a responsive grid.
+
+**Features:**
+- Uses a CSS grid for a responsive layout (1, 2, or 3 columns depending on screen size).
+- Applies a "fade in up" animation to each card with a slight delay for a staggered, visually appealing effect.
+- Marked with `'use client'` as it contains client-side animations.
+
+### 3.2. Asset Card: `asset-card.tsx`
+
+The [Asset Card](mdc:components/content-assets/asset-card.tsx) is the primary UI element for displaying a single asset.
+
+**Features:**
+- **Consistent Styling:** Designed to match the `ModuleCard` from the "Courses" section, using subtle charcoal grey gradients for a cohesive look.
+- **Dynamic Icons & Gradients:** The icon and gradient are determined by the `type` of the asset (`guide`, `hooks`, or `library`).
+- **Hover Effects:** Includes a "lift" effect (`transform: -translate-y-2`) and a revealable arrow icon in the top-right corner on hover.
+- **Visual Details:** Features a subtle dot-pattern overlay and a semi-transparent black layer to ensure text readability against the gradient background.
+
+**Configuration (`assetConfig`):**
+The card's appearance is controlled by a configuration object:
+```typescript
+const assetConfig: Record<AssetType, {
+  icon: React.ReactNode;
+  gradient: string;
+  // ... other styling properties
+}> = {
+  guide: {
+    icon: <FileText />,
+    gradient: 'linear-gradient(135deg, #374151 0%, #1f2937 100%)',
+    // ...
+  },
+  // ... configs for 'hooks' and 'library'
+};
+```
+
+## 4. Dynamic Asset Pages
+
+When a user clicks on an asset card, they are navigated to a dynamic page at `app/dashboard/content-assets/[assetId]/page.tsx`.
+
+This [Dynamic Asset Page](mdc:app/dashboard/content-assets/[assetId]/page.tsx) acts as a controller that renders the appropriate view based on the `assetId` from the URL.
+
+**Logic:**
+1. It retrieves the `assetId` from the page parameters.
+2. It looks up the corresponding data from a mock data object (`assetData`).
+3. It passes this data to the correct view component (`UGCGuideView`, `ViralHooksView`, or `AIBRollLibraryView`).
+4. If the `assetId` is not found, it renders a `404` page.
+
+## 5. Asset Views
+
+Each type of asset has its own dedicated view component, which handles the specific layout and functionality for that asset.
+
+### 5.1. UGC Guide View: `ugc-guide-view.tsx`
+
+The [UGC Guide View](mdc:components/content-assets/ugc-guide-view.tsx) is designed to display structured text content, like a guide or playbook.
+
+**Features:**
+- Renders rich text content with titles, subtitles, and paragraphs.
+- Includes special formatting for copy-and-paste script templates.
+- **PDF Download:** Contains a "Download" button that uses the `jsPDF` and `jspdf-autotable` libraries to generate and save the guide's content as a PDF file.
+
+### 5.2. Viral Hooks View: `viral-hooks-view.tsx`
+
+The [Viral Hooks View](mdc:components/content-assets/viral-hooks-view.tsx) displays a large, categorized list of viral hooks.
+
+**Features:**
+- **Two-Column Layout:**
+  - A sticky left sidebar for navigating hook categories.
+  - A main content area on the right to display the hooks for the selected category.
+- **Copy-to-Clipboard:** Each hook has a "Copy" button for easy use. A toast notification confirms the copy action.
+- **Data Source:** The content is sourced from `lib/hooks-data.ts`.
+
+### 5.3. AI B-Roll Library View: `ai-broll-library-view.tsx`
+
+The [AI B-Roll Library View](mdc:components/content-assets/ai-broll-library-view.tsx) is for showcasing a collection of visual media, like images or videos.
+
+**Features:**
+- **Image Grid:** Displays images in a responsive grid.
+- **Search & Filter:** Includes a search bar to filter images by keywords and a dropdown to filter by category.
+- **Download Functionality:** Each image card has a download button that triggers a browser download of the image file.
+
+## 6. Data
+
+The data for the "500 Viral Hooks" asset is stored in [lib/hooks-data.ts](mdc:lib/hooks-data.ts).
+
+**Structure (`viralHooks`):**
+It's an array of objects, where each object represents a category.
+
+```typescript
+export const viralHooks = [
+  {
+    category: 'Sports',
+    hooks: [
+      'Derek Redmond tore his hamstring mid-race. His dad ran onto the track to help him finish.',
+      // ... more hooks
+    ],
+  },
+  {
+    category: 'Business / Entrepreneurship / Personal Finance',
+    hooks: [
+      'Sara Blakely started Spanx with $5,000—and became a billionaire.',
+      // ... more hooks
+    ],
+  },
+  // ... more categories
+];
+```
+The full dataset is extensive, covering categories from Sports and AI to Cooking and Ancient History. You can find the complete list in the file.
+description:
+globs:
+alwaysApply: false
+---

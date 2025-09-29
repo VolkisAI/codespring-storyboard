@@ -1,0 +1,45 @@
+PROPRIETARY SOFTWARE LICENSE AGREEMENT
+
+Copyright (c) 2025 CodeSpring / Volkis AI. All rights reserved.
+
+This software and associated documentation files (the "Software") are the exclusive property of CodeSpring / Volkis AI.
+
+LICENSE REQUIREMENTS:
+To use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of this Software, you MUST:
+
+1. ACTIVE CODESPRING SUBSCRIPTION
+   - Maintain an active, paid CodeSpring subscription at https://codespring.ai
+   - Subscription must be in good standing (not suspended or terminated)
+   - Subscription tier must include access to proprietary codebases
+
+2. YEARLY CODEBASE LICENSE
+   - Purchase and maintain a valid yearly license specific to this codebase
+   - License key must be registered with your CodeSpring account
+   - License renewal required annually for continued access
+
+RESTRICTIONS:
+- NO unauthorized distribution or sharing of this codebase
+- NO use without both active subscription AND yearly license
+- NO reverse engineering, decompilation, or disassembly
+- NO removal or alteration of proprietary notices
+- NO commercial use outside of licensed terms
+
+VERIFICATION:
+Access to this repository requires verification of:
+- Valid CodeSpring subscription status
+- Active yearly license for this specific codebase
+- Authorized GitHub account linked to CodeSpring profile
+
+TERMINATION:
+Your license to this Software automatically terminates if:
+- Your CodeSpring subscription expires or is terminated
+- Your yearly codebase license expires without renewal
+- You violate any terms of this agreement
+
+DISCLAIMER:
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For licensing inquiries: license@codespring.ai
+For technical support: support@codespring.ai
+
+Repository: https://github.com/VolkisAI/codespring-storyboard

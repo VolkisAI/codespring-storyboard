@@ -1,0 +1,568 @@
+# Support Ticket System - Complete Implementation Guide
+
+This rule provides exhaustive details about the support ticket system implementation, covering every aspect from UI design to database interactions.
+
+## 1. Database Schema (`support-tickets-schema.ts`)
+
+### Table Structure
+```typescript
+Table: support_tickets
+Columns:
+- id: UUID (auto-generated, primary key)
+- userId: TEXT (required) - Clerk user ID
+- userEmail: TEXT (required) - User's email address
+- issueType: ENUM (required) - Type of support issue
+- purchaseEmails: JSON (required) - Array of email addresses used for purchases
+- transactionDate: DATE (optional) - Date of the transaction
+- transactionAmount: TEXT (optional) - Transaction amount as string
+- details: TEXT (required) - Detailed description of the issue
+- status: ENUM (default: "pending", required) - Current ticket status
+- resolutionNotes: TEXT (optional) - Notes about resolution
+- resolvedBy: TEXT (optional) - ID of person who resolved
+- resolvedAt: TIMESTAMP (optional) - When ticket was resolved
+- createdAt: TIMESTAMP (auto-generated) - Creation timestamp
+- updatedAt: TIMESTAMP (auto-generated, updates on change) - Last update timestamp
+```
+
+### Enums
+```typescript
+issueTypeEnum: [
+  "forgot-cancel",      // User forgot to cancel subscription
+  "no-product",         // Didn't receive the product
+  "unacceptable",       // Product quality unacceptable
+  "not-described",      // Product not as described
+  "unauthorized",       // Unauthorized transaction
+  "subscription-cancel" // Request to cancel subscription
+]
+
+ticketStatusEnum: [
+  "pending",    // Initial state, awaiting review
+  "in-review",  // Being reviewed by support
+  "resolved",   // Issue resolved
+  "refunded",   // Refund issued
+  "canceled",   // Ticket/subscription canceled
+  "rejected"    // Request rejected
+]
+```
+
+### Type Exports
+```typescript
+export type InsertSupportTicket = typeof supportTicketsTable.$inferInsert;
+export type SelectSupportTicket = typeof supportTicketsTable.$inferSelect;
+```
+
+## 2. Database Queries (`support-tickets-queries.ts`)
+
+### CRUD Operations
+
+#### Create Support Ticket
+```typescript
+createSupportTicket(data: InsertSupportTicket)
+- Inserts new ticket into database
+- Returns the created ticket
+- Throws error on failure
+```
+
+#### Read Operations
+```typescript
+getSupportTicketById(id: string)
+- Fetches single ticket by ID
+- Returns ticket or undefined
+
+getSupportTicketsByUserId(userId: string)
+- Fetches all tickets for a user
+- Orders by createdAt DESC (newest first)
+- Returns array of tickets
+
+getAllSupportTickets()
+- Fetches all tickets in system
+- Orders by createdAt DESC
+- Returns array of all tickets
+```
+
+#### Update Operations
+```typescript
+updateSupportTicket(id: string, data: Partial<InsertSupportTicket>)
+- Updates any ticket fields
+- Returns updated ticket
+
+updateSupportTicketStatus(
+  id: string,
+  status: InsertSupportTicket['status'],
+  resolvedBy?: string,
+  resolutionNotes?: string
+)
+- Specialized status update
+- Auto-sets resolvedAt timestamp for resolved/refunded/canceled/rejected
+- Sets resolvedBy and resolutionNotes when provided
+- Returns updated ticket
+```
+
+#### Delete Operation
+```typescript
+deleteSupportTicket(id: string)
+- Permanently deletes ticket
+- No return value
+```
+
+## 3. Server Actions (`support-tickets-actions.ts`)
+
+### Action Pattern
+All actions follow this pattern:
+1. Try-catch wrapper around database query
+2. Return ActionState<T> with status/message/data
+3. Revalidate paths on mutations
+4. Console logging for debugging
+
+### Actions List
+
+#### createSupportTicketAction
+- Wraps createSupportTicket query
+- Revalidates: `/dashboard/support`, `/dashboard/admin`
+- Returns: ActionState<SelectSupportTicket>
+
+#### getSupportTicketByIdAction
+- Wraps getSupportTicketById query
+- No revalidation (read-only)
+- Returns: ActionState<SelectSupportTicket | null>
+
+#### getSupportTicketsByUserIdAction
+- Wraps getSupportTicketsByUserId query
+- No revalidation (read-only)
+- Returns: ActionState<SelectSupportTicket[]>
+
+#### getAllSupportTicketsAction
+- Wraps getAllSupportTickets query
+- No revalidation (read-only)
+- Returns: ActionState<SelectSupportTicket[]>
+
+#### updateSupportTicketAction
+- Wraps updateSupportTicket query
+- Revalidates: `/dashboard/support`, `/dashboard/admin`
+- Returns: ActionState<SelectSupportTicket>
+
+#### updateSupportTicketStatusAction
+- Wraps updateSupportTicketStatus query
+- Revalidates: `/dashboard/support`, `/dashboard/admin`
+- Returns: ActionState<SelectSupportTicket>
+
+#### deleteSupportTicketAction
+- Wraps deleteSupportTicket query
+- Revalidates: `/dashboard/support`, `/dashboard/admin`
+- Returns: ActionState (no data)
+
+## 4. Page Component (`page.tsx`)
+
+### Server Component Structure
+```typescript
+Location: app/dashboard/support/page.tsx
+Type: Async Server Component
+```
+
+### Flow:
+1. Gets current user from Clerk (`currentUser()`)
+2. Shows login prompt if no user
+3. Fetches user's tickets via `getSupportTicketsByUserIdAction`
+4. Handles error states (returns empty array on failure)
+5. Passes tickets to client component
+
+## 5. Client Component (`support-page-client.tsx`)
+
+### Component Structure
+```typescript
+Location: app/dashboard/support/support-page-client.tsx
+Type: Client Component ("use client")
+Props: { tickets: SelectSupportTicket[] }
+```
+
+### State Management
+```typescript
+const [showRefundPopup, setShowRefundPopup] = useState(false);
+const [showCancelPopup, setShowCancelPopup] = useState(false);
+```
+
+### UI Layout & Styling
+
+#### Overall Container
+```css
+- Padding: p-6 md:p-8 (24px mobile, 32px desktop)
+- Max width: max-w-5xl (1024px)
+- Centered: mx-auto
+```
+
+#### Header Section
+```typescript
+Animation: 
+- Initial: opacity-0, y-(-20px)
+- Animate: opacity-1, y-0
+- Duration: 0.3s
+
+Components:
+1. Back Button:
+   - Variant: ghost
+   - Size: sm
+   - Icon: ArrowLeft (4x4)
+   - Margin: mb-4
+   - Links to: /dashboard
+
+2. Title: 
+   - "Support Center"
+   - Class: text-3xl font-bold mb-2
+
+3. Subtitle:
+   - "Manage your account and get help"
+   - Class: text-gray-600
+```
+
+#### Main Support Card
+```typescript
+Animation:
+- Initial: opacity-0, y-20px
+- Animate: opacity-1, y-0
+- Duration: 0.3s, delay: 0.1s
+
+Card Styling:
+- Padding: p-8
+- Margin: mb-8
+- Border: border-2
+
+Content Layout:
+- Flex column, center aligned
+- Text center
+
+Logo:
+- Size: w-20 h-20 (80x80px)
+- Margin: mb-4
+- Image: /logo.png
+- Object fit: contain
+
+Title/Subtitle:
+- Title: "CodeSpring" (text-2xl font-bold mb-2)
+- Subtitle: "How can we help you today?" (text-gray-600 mb-6)
+```
+
+#### Action Buttons Grid
+```typescript
+Grid Layout:
+- Mobile: 1 column
+- Desktop: 3 columns (sm:grid-cols-3)
+- Gap: gap-4
+- Max width: max-w-2xl
+
+Button Animation:
+- Staggered: delay 0.2 + index * 0.1
+- Each button animates 0.1s after previous
+
+Button Styling:
+- Variant: outline
+- Size: lg
+- Height: h-auto
+- Padding: py-6 px-4
+- Layout: flex flex-col items-center gap-3
+- Transition: all duration-200
+
+Individual Button Hover States:
+1. Refund: hover:border-red-200 hover:bg-red-50
+2. Cancel: hover:border-orange-200 hover:bg-orange-50
+3. Help: hover:border-blue-200 hover:bg-blue-50
+
+Icons: w-6 h-6 (24x24px)
+Text: font-medium
+```
+
+#### Support Actions Configuration
+```typescript
+const supportActions = [
+  {
+    id: "refund",
+    title: "Request a refund",
+    icon: RefreshCw,
+    onClick: () => setShowRefundPopup(true),
+    className: "hover:border-red-200 hover:bg-red-50"
+  },
+  {
+    id: "cancel",
+    title: "Cancel membership",
+    icon: X,
+    onClick: () => setShowCancelPopup(true),
+    className: "hover:border-orange-200 hover:bg-orange-50"
+  },
+  {
+    id: "help",
+    title: "Help & Support",
+    icon: HelpCircle,
+    onClick: handleHelpSupport,
+    className: "hover:border-blue-200 hover:bg-blue-50"
+  }
+]
+```
+
+#### Email Section
+```typescript
+Animation:
+- Delay: 0.5s
+- Fade in only
+
+Layout:
+- Margin top: mt-8
+- Flex row with gap-2
+- Text color: text-gray-600
+
+Components:
+- Mail icon: w-4 h-4
+- Text: "Contact us at:"
+- Email link: 
+  - href: mailto:usecodespring@gmail.com
+  - Classes: font-medium text-primary hover:underline
+```
+
+#### Support Tickets Section
+```typescript
+Animation:
+- Initial: opacity-0, y-20px
+- Animate: opacity-1, y-0
+- Duration: 0.3s, delay: 0.3s
+
+Card:
+- Padding: p-6
+
+Header:
+- Flex justify-between items-center
+- Margin: mb-4
+- Title: text-lg font-semibold
+- Icon: FileText w-5 h-5
+```
+
+#### Ticket List
+```typescript
+Container:
+- Space between items: space-y-3
+
+Individual Ticket Animation:
+- Initial: opacity-0, y-10px
+- Animate: opacity-1, y-0
+- Duration: 0.2s
+
+Ticket Card Styling:
+- Padding: p-4
+- Border radius: rounded-lg
+- Border: border
+- Transition: all duration-200
+- Dynamic background/border based on status
+```
+
+#### Status-Based Styling
+```typescript
+getStatusCardColor(status):
+- pending: bg-yellow-50 border-yellow-200 hover:border-yellow-300
+- in-review: bg-blue-50 border-blue-200 hover:border-blue-300
+- resolved: bg-green-50 border-green-200 hover:border-green-300
+- refunded: bg-emerald-50 border-emerald-200 hover:border-emerald-300
+- rejected: bg-red-50 border-red-200 hover:border-red-300
+- canceled: bg-orange-50 border-orange-200 hover:border-orange-300
+- default: bg-gray-50 border-gray-200 hover:border-gray-300
+```
+
+#### Status Icons
+```typescript
+getStatusIcon(status):
+- pending: Clock (w-4 h-4 text-yellow-600)
+- in-review: AlertCircle (w-4 h-4 text-blue-600)
+- resolved/refunded: CheckCircle (w-4 h-4 text-green-600)
+- rejected/canceled: X (w-4 h-4 text-red-600)
+- default: Clock (w-4 h-4 text-gray-600)
+```
+
+#### Ticket Content Layout
+```typescript
+Main Container:
+- Flex items-start justify-between
+
+Left Section (flex-1):
+1. Header Row:
+   - Flex items-center gap-2 mb-1
+   - Issue type label (font-medium)
+   - Ticket ID (first 8 chars, text-sm text-gray-500)
+
+2. Details:
+   - Text: text-sm text-gray-600 mb-2
+   - Max lines: line-clamp-2
+
+3. Metadata Row:
+   - Flex items-center gap-4
+   - Text: text-sm text-gray-500
+   - Date format: DD/MM/YYYY (en-GB)
+   - Separator: • (text-gray-400)
+   - Transaction amount (if exists)
+
+Right Section:
+- Margin left: ml-4
+- Flex items-center gap-2
+- Status icon + text (text-sm font-medium)
+
+Resolution Notes (if exists):
+- Margin top: mt-3
+- Padding top: pt-3
+- Border top: border-t border-gray-200/50
+- Text: text-sm text-gray-600
+- Label: font-medium
+```
+
+#### Empty State
+```typescript
+Layout:
+- Text center
+- Padding: py-8
+- Color: text-gray-500
+
+Icon:
+- FileText
+- Size: w-12 h-12
+- Centered: mx-auto
+- Margin: mb-3
+- Color: text-gray-300
+
+Text: "No support tickets yet"
+```
+
+### Helper Functions
+
+#### handleHelpSupport
+```typescript
+Purpose: Opens email client with pre-filled support email
+Implementation:
+- Subject: "Support Request - CodeSpring" (URL encoded)
+- Body: Pre-filled template (URL encoded)
+- Uses window.location.href for mailto link
+```
+
+#### Label Transformations
+```typescript
+getIssueTypeLabel(issueType):
+- forgot-cancel → "Forgot to cancel membership"
+- no-product → "Didn't receive the product"
+- unacceptable → "Product unacceptable"
+- not-described → "Product not as described"
+- unauthorized → "Unauthorized transaction"
+- subscription-cancel → "Subscription Cancellation"
+- default → return original
+
+getStatusText(status):
+- pending → "Pending"
+- in-review → "In Review"
+- resolved → "Resolved"
+- refunded → "Refunded"
+- rejected → "Rejected"
+- canceled → "Canceled"
+- subscription-cancel → "Subscription Cancellation"
+- default → return original
+```
+
+### External Components
+```typescript
+RefundPopup:
+- Props: isOpen, onOpenChange
+- Controlled by showRefundPopup state
+
+CancelSubscriptionPopup:
+- Props: isOpen, onOpenChange
+- Controlled by showCancelPopup state
+```
+
+## 6. Integration Flow
+
+### User Journey
+1. User navigates to `/dashboard/support`
+2. Server component checks authentication
+3. Fetches user's tickets from database
+4. Renders client component with tickets
+5. User can:
+   - View existing tickets with status
+   - Click "Request a refund" → Opens RefundPopup
+   - Click "Cancel membership" → Opens CancelSubscriptionPopup
+   - Click "Help & Support" → Opens email client
+
+### Data Flow
+1. Database → Queries → Actions → Server Component → Client Component
+2. User interactions → State updates → Popup displays
+3. Popup submissions → Actions → Database updates → Path revalidation
+
+### Security Considerations
+- All database operations are server-side only
+- User can only see their own tickets (filtered by userId)
+- Clerk authentication required for access
+- No direct database access from client
+
+## 7. Dependencies
+
+### External Libraries
+- @clerk/nextjs/server - Authentication
+- drizzle-orm - Database ORM
+- framer-motion - Animations
+- lucide-react - Icons
+- Next.js - Framework
+- React - UI library
+
+### Internal Dependencies
+- UI Components from @/components/ui
+- Database setup from @/db/db
+- Type definitions from @/types
+- Support popups from @/components/support
+
+## 8. Responsive Design
+
+### Breakpoints
+- Mobile: Default styles
+- Tablet/Desktop: `md:` prefix (768px+)
+- Small screens: `sm:` prefix (640px+)
+
+### Responsive Changes
+- Padding: p-6 → md:p-8
+- Grid: 1 column → sm:grid-cols-3
+- All animations work on all screen sizes
+- Text remains readable on all devices
+
+## 9. Animation Details
+
+### Framer Motion Patterns
+```typescript
+Pattern 1 - Fade Down:
+initial: { opacity: 0, y: -20 }
+animate: { opacity: 1, y: 0 }
+
+Pattern 2 - Fade Up:
+initial: { opacity: 0, y: 20 }
+animate: { opacity: 1, y: 0 }
+
+Pattern 3 - Fade Only:
+initial: { opacity: 0 }
+animate: { opacity: 1 }
+
+Timing:
+- Base duration: 0.3s
+- Staggered delays: 0.1s increments
+- Smooth easing (default)
+```
+
+## 10. Error Handling
+
+### Database Level
+- Try-catch blocks in all query functions
+- Console.error for debugging
+- Throw errors with descriptive messages
+
+### Action Level
+- Wrap all database calls in try-catch
+- Return standardized ActionState
+- Log errors to console
+
+### UI Level
+- Handle empty states gracefully
+- Show fallback UI for missing data
+- Defensive checks for user authentication
+
+This completes the exhaustive documentation of the support ticket system implementation.
+description:
+globs:
+alwaysApply: false
+---

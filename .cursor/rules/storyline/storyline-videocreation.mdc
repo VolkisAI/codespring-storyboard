@@ -1,0 +1,36 @@
+# Storyline → Video Creation Flow
+
+Use this guide when you need to trace how a single frame image becomes a hosted video clip.
+
+1. **Client initiator** – `VideoPane.tsx` calls `generateVideoForSegmentAction` for each segment that has `imageUrl` but no `videoUrl`.  
+   • File: [VideoPane.tsx](mdc:components/storyline/VideoPane.tsx)
+
+2. **Server Action** – `generateVideoForSegmentAction` (located in [storyline-video-actions.ts](mdc:actions/storyline/storyline-video-actions.ts))
+   • Validates the segment has `imageUrl` & `prompt`.  
+   • Submits `runway.imageToVideo.create` with `promptImage` (public URL) and stores the returned `taskId` back into the segment (`runwayTaskId`, `status: 'video_processing'`).
+
+3. **Polling (client)** – `VideoPane` polls `/api/video-maker?taskId=…` every 5 s until status `SUCCEEDED` or `FAILED`.
+
+4. **Polling endpoint** – GET handler in [video-maker route](mdc:app/api/video-maker/route.ts):
+   • Calls `https://api.dev.runwayml.com/v1/tasks/:id` with secret key.  
+   • When `status === 'SUCCEEDED'` it extracts the video URL (`output[0]` or `output.videoUrl`).  
+   • Invokes `updateSegmentWithVideoAction` to download & upload the mp4 into Supabase, update segment (`videoUrl`, `status: 'completed'`) and append to `generatedVideoUrls`.
+
+5. **Storage & DB updater** – `updateSegmentWithVideoAction` in [storyline-storage-actions.ts](mdc:actions/storyline/storyline-storage-actions.ts)  
+   • `downloadAndUploadVideo` downloads Runway URL and uploads to `storyline-videos` bucket.  
+   • Updates segment JSON and, if all segments completed, marks storyline `status: 'completed'`.
+
+6. **Revalidation & UI refresh** – Both the action and the polling endpoint call `revalidatePath('/dashboard/storyline')` so SWR/data caches update; `VideoPane` sees new `videoUrl` and renders `<video />` preview.
+
+Key status values inside a `StorylineSegment`:
+- `pending` – transcript parsed, no image.
+- `image_generated` – frame image stored.
+- `video_processing` – Runway task submitted.
+- `completed` – hosted video ready.
+- `failed` – generation error.
+
+Follow this sequence any time you need to debug or extend the video-generation pipeline.
+description:
+globs:
+alwaysApply: false
+---

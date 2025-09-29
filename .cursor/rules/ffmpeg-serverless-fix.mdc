@@ -1,0 +1,44 @@
+# FFmpeg and Video Processing on Vercel
+
+This project uses a client-side video processing strategy with `ffmpeg.wasm` to avoid common and severe limitations of running FFmpeg in a Vercel serverless environment. Server-side FFmpeg approaches (using `ffmpeg-static` or `@ffmpeg-installer/ffmpeg`) consistently fail during Vercel's build or runtime due to binary packaging issues.
+
+## The Client-Side WASM Strategy
+
+The core of the solution is to process video files directly in the user's browser before they are uploaded. This significantly simplifies the backend and bypasses Vercel's function size and execution limits.
+
+### Key Components
+
+1.  **`VideoProcessor.tsx`**:
+    - This component, located at [components/storyline/VideoProcessor.tsx](mdc:components/storyline/VideoProcessor.tsx), is a client-side wrapper around `ffmpeg.wasm`.
+    - It loads the FFmpeg WebAssembly core files and provides a hook to process video files.
+    - Currently, it's used to extract a low-bitrate MP3 audio track from a video file.
+
+2.  **`UploadPane.tsx`**:
+    - The main upload UI at [components/storyline/UploadPane.tsx](mdc:components/storyline/UploadPane.tsx) uses the `VideoProcessor`.
+    - When a user selects a video, it first processes it on the client to extract the audio.
+    - Only the small, extracted audio `Blob` is sent to the server for transcription.
+
+3.  **Serving FFmpeg Core Files**:
+    - For `ffmpeg.wasm` to work, its core JavaScript and WASM files must be accessible to the browser.
+    - The `next.config.mjs` file, located at [next.config.mjs](mdc:next.config.mjs), uses `copy-webpack-plugin` to automatically copy these essential files from `node_modules/@ffmpeg/core/dist/esm` into the `public/ffmpeg/` directory at build time.
+    - The `VideoProcessor` then loads these files from `/ffmpeg/`.
+
+4.  **Backend Server Action**:
+    - The server action at [actions/storyline/storyline-transcript-actions.ts](mdc:actions/storyline/storyline-transcript-actions.ts) is now much simpler.
+    - It no longer deals with video files. It receives the pre-processed audio file and sends it directly to the transcription service (Groq).
+
+### Why This Approach?
+
+- **Avoids Vercel Limits**: Bypasses Vercel's serverless function size limits (50MB) and execution timeouts, which make server-side FFmpeg unreliable.
+- **Improved User Experience**: The user gets immediate feedback and progress on the audio extraction process in their browser.
+- **Robust and Simple**: This solution is self-contained and doesn't rely on external services or complex server-side binary management.
+
+**IMPORTANT**: If you need to perform other FFmpeg operations, the recommended approach is to expand the `VideoProcessor.tsx` component to handle them on the client side. Avoid re-introducing server-side FFmpeg processing.
+
+alwaysApply: false
+---
+
+**IMPORTANT**: If you need to perform other FFmpeg operations, the recommended approach is to expand the `VideoProcessor.tsx` component to handle them on the client side. Avoid re-introducing server-side FFmpeg processing.
+
+alwaysApply: false
+---

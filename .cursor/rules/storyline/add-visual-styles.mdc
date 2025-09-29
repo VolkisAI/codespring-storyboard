@@ -1,0 +1,53 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Adding New Visual Styles
+
+This document outlines the process for adding new visual styles to the application. Visual styles are used to define the aesthetic of the generated images for character concepts and storyboards.
+
+## How It Works
+
+1.  **Style Definition**: All visual styles are defined in a central configuration file: [config/visual-styles.ts](mdc:config/visual-styles.ts). This file exports a `visualStyles` object.
+2.  **Frontend Display**: The [components/storyline/UploadPane.tsx](mdc:components/storyline/UploadPane.tsx) reads the `visualStyles` object to dynamically populate the "Select Visual Style" dropdown menu. Adding a new style to the config file will automatically make it available to the user.
+3.  **Backend Processing**: The actions responsible for generating characters ([actions/storyline/storyline-character-actions.ts](mdc:actions/storyline/storyline-character-actions.ts)) and images ([actions/storyline/storyline-image-actions.ts](mdc:actions/storyline/storyline-image-actions.ts)) receive the selected style's key. They use this key to look up the style's details from `visualStyles` and inject them into the prompts sent to the AI image generator.
+
+## How to Add a New Style
+
+To add a new visual style, you must edit the `visualStyles` object in [config/visual-styles.ts](mdc:config/visual-styles.ts).
+
+Each style entry requires:
+- A unique key (e.g., `painted-animation`).
+- A `name` (string) for display in the UI (e.g., `'Painted Animation'`).
+- A `description` (string or object) which serves as the style prompt for the AI.
+
+### Description Format
+
+The `description` is crucial for achieving the desired visual output. It can be a simple string, but for complex and consistent styles, **an object is strongly recommended.**
+
+When the `description` is an object, it is converted to a JSON string and passed to the AI as a detailed style guide. This provides more control over aspects like lighting, texture, color, and mood.
+
+### Example: 'Painted Animation' Style
+
+Here is the implementation of the "Painted Animation" style. Use this as a template for new styles.
+
+```typescript
+'painted-animation': {
+    name: 'Painted Animation',
+    description: {
+      style: {
+        render: 'stylized 3-D animation',
+        inspiration: 'modern feature-film (Pixar/DreamWorks) look',
+        // ... more properties
+      },
+      lighting: {
+        scheme: 'cinematic three-point',
+        // ... more properties
+      },
+      // ... other categories like textures, colours, etc.
+    },
+  },
+```
+
+By following this structure, you can easily extend the application with new, creative visual styles that are seamlessly integrated into the user's workflow.

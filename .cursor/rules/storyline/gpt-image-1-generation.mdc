@@ -1,0 +1,42 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Generating Images with gpt-image-1
+
+When generating images using OpenAI's `gpt-image-1` model, please adhere to the following guidelines.
+
+## API Usage
+
+- **Model**: Always specify `gpt-image-1` as the model.
+- **`response_format`**: **DO NOT** include the `response_format` parameter in your API call. The `gpt-image-1` model exclusively returns Base64-encoded JSON and does not support URL outputs. Including this parameter will result in an error.
+
+## Handling the Response
+
+The API response will contain an object with a `data` array. Each object in the array will have a `b64_json` field containing the Base64-encoded image data. The `url` field will always be `null`.
+
+```json
+{
+  "data": [
+    {"b64_json": "iVBORw0KGgoAAAANSUhEUgAA..." }
+  ]
+}
+```
+
+## Displaying the Image
+
+To display the image in a browser, you must create a Data URI and assign it to an `<img>` element's `src` attribute.
+
+```javascript
+const b64 = response.data[0].b64_json; // The Base-64 string
+const imageUrl = `data:image/png;base64,${b64}`; // The Data URI
+```
+This `imageUrl` can then be used directly in your components.
+
+## Implementation Examples
+
+For concrete examples of this implementation, please see the following files:
+
+- [storyline-character-actions.ts](mdc:actions/storyline/storyline-character-actions.ts)
+- [storyline-image-actions.ts](mdc:actions/storyline/storyline-image-actions.ts)

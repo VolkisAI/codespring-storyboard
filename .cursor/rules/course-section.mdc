@@ -1,0 +1,66 @@
+# Guide: Building the Storyboard Academy
+
+This document outlines the architecture and implementation of the Storyboard Academy, a course platform feature within the application. It's designed to be a reusable pattern for educational content.
+
+## 1. User Flow & Journey
+
+The user journey is designed to be simple and intuitive:
+
+1.  **Entry Point**: The user enters the feature through the main application [sidebar.tsx](mdc:components/sidebar.tsx). A dedicated "Learning" section contains a "Courses" link.
+2.  **Course Hub**: Clicking "Courses" navigates the user to the Storyboard Academy main page at `app/dashboard/courses/page.tsx`. This page is rendered using [page.tsx](mdc:app/dashboard/courses/page.tsx).
+3.  **Module Selection**: The main page displays a grid of available course modules using the [module-grid.tsx](mdc:components/courses/module-grid.tsx) component. Each module is a clickable [module-card.tsx](mdc:components/courses/module-card.tsx).
+4.  **Lesson View**: Clicking a module card navigates the user to the dynamic course page: `app/dashboard/courses/[courseId]/page.tsx`, rendered by [page.tsx](mdc:app/dashboard/courses/[courseId]/page.tsx). This page presents the lessons for the selected module.
+5.  **Watching a Lesson**: The course detail page is split into two main components: a `LessonSidebar` on the left for navigation between lessons, and a `CourseVideoPlayer` on the right to display the video and any supplementary notes.
+
+## 2. Component Architecture & Customization
+
+The feature is built with a modular approach. Here’s how to customize it:
+
+### **`app/dashboard/courses/page.tsx`**
+
+This is the **primary configuration file for the course modules**.
+
+-   **Content**: To add, remove, or edit the course modules displayed on the academy's main page, modify the `modules` array. Each object in this array defines:
+    -   `id`: A unique slug for the course used in the URL.
+    -   `moduleNumber`: The number displayed on the badge.
+    -   `title`: The main title of the course.
+    -   `description`: The short description.
+    -   `lessonCount`: The total number of lessons (must be updated manually).
+    -   `gradient`: A `linear-gradient` string for the card's background.
+
+### **`app/dashboard/courses/[courseId]/page.tsx`**
+
+This is the **primary configuration file for the lessons within a specific course**.
+
+-   **Content**: To add, remove, or edit lessons, modify the `courseData` object.
+    -   Each key in `courseData` should match a module `id` from the previous file.
+    -   Lessons are organized into `lessonGroups`.
+    -   Each lesson object contains:
+        -   `id`: A unique slug for the lesson (used for URL params).
+        -   `title`, `duration`, `description`.
+        -   `videoUrl`: The **embed** URL for the video (e.g., from Loom).
+        -   `notes`: **(Optional)** A string containing detailed notes for the lesson. If this property is omitted, the "Lesson Notes" section will not be rendered for that lesson.
+
+### **`components/courses/module-card.tsx`**
+
+This component is purely for presentation.
+
+-   **Styling**: It uses a CSS-in-JS style for the `background` to apply the gradient passed via props. It features a dot-pattern overlay and a hover effect with an arrow icon. The styling is self-contained and should not require changes unless the overall design is updated.
+
+### **`components/courses/course-video-player.tsx`**
+
+This component displays the lesson content.
+
+-   **Video**: It uses an `<iframe>` to embed videos, which is necessary for platforms like Loom.
+-   **Conditional Rendering**: It checks for the existence of `lesson.notes`. If the property is present on the lesson object, it renders the "Lesson Notes" accordion. If it's `undefined`, the entire section is omitted.
+-   **Styling**: The "Lesson Notes" accordion is styled with a branded green accent color (`#C5F548`) on the icon and a light green tint on the container's background to make it noticeable.
+
+### **`components/sidebar.tsx`**
+
+-   **Integration**: The link to the Storyboard Academy is defined in the `learningNavItems` array. This array populates the "Learning" section in the sidebar. To change the link or add new items to this section, modify this array.
+
+-   **Styling**: The "Lesson Notes" accordion is styled with a branded green accent color (`#C5F548`) on the icon and a light green tint on the container's background to make it noticeable.
+
+### **`components/sidebar.tsx`**
+
+-   **Integration**: The link to the Storyboard Academy is defined in the `learningNavItems` array. This array populates the "Learning" section in the sidebar. To change the link or add new items to this section, modify this array.

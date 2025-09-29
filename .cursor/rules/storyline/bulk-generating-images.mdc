@@ -1,0 +1,29 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Bulk Image Generation for Storylines
+
+This document outlines the process for generating multiple images concurrently from transcript prompts in the [`actions/storyline/storyline-image-actions.ts`](mdc:actions/storyline/storyline-image-actions.ts) file.
+
+## Process Overview
+
+The core logic resides in the `generateImagesForPrompts` function. It's designed to be efficient by sending multiple requests to the image generation API in parallel.
+
+1.  **Input**: The function receives an array of `TranscriptSegment` objects, each potentially containing a text prompt for an image.
+
+2.  **Filtering**: It begins by filtering out any segments that do not have a valid prompt to ensure no unnecessary API calls are made.
+
+3.  **Concurrent API Calls**: The system uses `Promise.all` to manage concurrency. It maps over the list of valid prompts and creates an array of promises. Each promise corresponds to a single call to the OpenAI image generation API. This allows for many images to be generated at the same time, significantly speeding up the process compared to a sequential approach.
+
+4.  **Dynamic Prompt Creation**: For each image, a detailed prompt is constructed. This involves taking the base prompt from the transcript segment and merging it with a specific visual style defined in [`config/visual-styles.ts`](mdc:config/visual-styles.ts). This allows for consistent aesthetics (e.g., 'Pixar', 'Realistic') across a series of images.
+
+5.  **Image Generation Model**: The API call to `openai.images.generate` specifies the model to be used. In our current implementation, this is set to `gpt-image-1`.
+
+6.  **Response Format**: The function is built to handle two types of image data in the API response:
+    *   A direct URL to the generated image.
+    *   Base64 encoded image data (`b64_json`).
+    If a URL is not available, the code constructs a data URL from the Base64 string, which can be directly embedded in the application. This provides a reliable fallback.
+
+7.  **Output**: Finally, the function gathers all the successfully generated image data into an array and returns it, along with metadata like the original prompt and style used.

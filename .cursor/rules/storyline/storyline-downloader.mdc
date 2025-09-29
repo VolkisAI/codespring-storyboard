@@ -1,0 +1,28 @@
+# Storyline Downloader Documentation
+
+This document outlines how the feature for downloading storyline images and videos as a zip file is implemented.
+
+## Feature Overview
+
+The user can download all generated images or videos for a specific storyline from the library's detail view. The zipping process is handled entirely on the client-side.
+
+## Component Breakdown & Data Flow
+
+1.  **Initiation Point: `LibraryDetailClient`**
+    The main client component, [library-detail-client.tsx](mdc:components/library/library-detail-client.tsx), fetches the complete storyline data, including all its segments. It then passes the `segments` array and the `storylineName` down to the `StorylineBar`.
+
+2.  **UI Host: `StorylineBar`**
+    The [StorylineBar.tsx](mdc:components/storyline/StorylineBar.tsx) component now includes a dedicated slot for the download button. It receives the storyline data from its parent and passes it directly to the download button component.
+
+3.  **Core Logic: `DownloadStorylineButton`**
+    The main logic resides in [download-storyline-button.tsx](mdc:components/library/download-storyline-button.tsx). This component:
+    *   Uses a dropdown from ShadCN to offer "Download Images" or "Download Videos" options.
+    *   When an option is selected, it filters the `segments` to get the relevant `imageUrl` or `videoUrl` list.
+    *   It then fetches each media file as a blob.
+    *   Using the `jszip` library, it adds each fetched blob into a new zip archive in memory.
+    *   Once all files are added, it uses the `file-saver` library to trigger a download of the generated zip file in the user's browser.
+    *   It uses `sonner` to display toast notifications for the download progress (loading, success, error).
+description:
+globs:
+alwaysApply: false
+---

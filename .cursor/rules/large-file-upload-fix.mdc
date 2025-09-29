@@ -1,0 +1,24 @@
+# Large-file Upload Flow (Vercel-safe)
+
+When a user needs to upload files larger than ~4 MB (e.g. a 100 MB video) **NEVER** pass the raw file through a Server/Edge Function or Server Action, because Vercel’s ingress proxy will return `413 Content Too Large`.
+
+Instead, follow this pattern:
+
+1. **Signed URL** – Request a signed upload URL from an API route (e.g. `/api/upload-video`).
+2. **Direct Upload** – `PUT` the file directly from the browser to storage (Supabase Storage / Vercel Blob) using the signed URL and `x-upsert-token` header.
+3. **Small Payload Server Action** – After the upload completes, call the Server Action and pass only:
+   • the lightweight derivative (e.g. extracted MP3)  
+   • the `originalVideoUrl` (string)  
+   • other small form fields.
+4. **Server-side Schema** – Validate `originalVideoUrl` with `z.string().url()`; do **not** accept `File` objects for the original video.
+5. **Database** – Store `originalVideoUrl` when the storyline is created; the raw file never hits the function.
+
+Reference implementation:
+* [components/storyline/UploadPane.tsx](mdc:components/storyline/UploadPane.tsx) – handles steps 1–3.
+* [actions/storyline/storyline-transcript-actions.ts](mdc:actions/storyline/storyline-transcript-actions.ts) – new schema & logic.
+
+Use this rule whenever you introduce uploads that might exceed Vercel’s 4.5 MB limit.
+description:
+globs:
+alwaysApply: false
+---

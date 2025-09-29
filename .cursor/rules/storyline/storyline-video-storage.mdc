@@ -1,0 +1,52 @@
+# Storing Runway Videos in Supabase
+
+This document outlines the process of taking a completed video from Runway, downloading it, storing it permanently in our own Supabase bucket, and updating our database with the new URL. This is critical because Runway's output URLs are ephemeral and expire.
+
+### 1. Polling Endpoint Identifies Completed Task
+
+The process begins in the GET handler of the `video-maker` API route. The client polls this endpoint with a `taskId`.
+
+-   **File**: [`app/api/video-maker/route.ts`](mdc:app/api/video-maker/route.ts)
+
+The endpoint fetches the task status from Runway. When a task `SUCCEEDS`, it extracts the temporary video URL from the response payload.
+
+### 2. Finding the Segment with a Database Query
+
+Because the poller is a stateless serverless function, it cannot rely on an in-memory map to know which storyline the `taskId` belongs to. Instead, it uses a direct database lookup.
+
+-   **Function**: `findSegmentByRunwayTaskId`
+-   **File**: [`db/queries/storyline-queries.ts`](mdc:db/queries/storyline-queries.ts)
+
+This function executes a raw SQL query against the `storylines` table, searching inside the `segments` JSONB array to find the object containing a matching `runwayTaskId`. It returns the `storylineId` and `segmentId`.
+
+### 3. Triggering the Storage Action
+
+Once the `storylineId` and `segmentId` are known, the API route calls the main server action responsible for storage.
+
+-   **Function**: `updateSegmentWithVideoAction`
+-   **File**: [`actions/storyline/storyline-storage-actions.ts`](mdc:actions/storyline/storyline-storage-actions.ts)
+
+### 4. Downloading and Uploading the Video
+
+The `updateSegmentWithVideoAction` orchestrates the core logic:
+
+1.  It calls `downloadAndUploadVideo` (also in `storyline-storage-actions.ts`).
+2.  `downloadAndUploadVideo` `fetch`es the video from the temporary Runway URL.
+3.  It reads the response as an `ArrayBuffer`.
+4.  It uploads this buffer to the `storyline-videos` bucket in Supabase Storage, creating a permanent, publicly accessible URL.
+
+### 5. Updating the Database
+
+With the permanent Supabase URL, `updateSegmentWithVideoAction` performs two database updates:
+
+1.  **Update Segment JSON**: It calls `updateStorylineSegmentInJson` to update the specific segment within the `segments` array, setting its `videoUrl` and updating its `status` to `'completed'`.
+2.  **Update Top-Level Array**: It calls `addGeneratedVideoUrl` to push the new Supabase URL into the `generatedVideoUrls` array on the root `storylines` record.
+
+The schema defines these fields:
+-   **File**: [`db/schema/storyline-schema.ts`](mdc:db/schema/storyline-schema.ts)
+
+This ensures the data is correctly persisted and accessible for the application frontend. Revalidation is triggered to refresh the UI.
+description:
+globs:
+alwaysApply: false
+---
